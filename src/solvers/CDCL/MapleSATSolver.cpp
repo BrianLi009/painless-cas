@@ -1,11 +1,9 @@
-// First include the core MapleSAT headers in correct order
-#include <mapleSAT/mapleSAT/mtl/Vec.h>
-#include <mapleSAT/mapleSAT/core/SolverTypes.h>
+// MapleSAT includes
 #include <mapleSAT/mapleSAT/core/Dimacs.h>
 #include <mapleSAT/mapleSAT/simp/SimpSolver.h>
 #include <mapleSAT/mapleSAT/utils/System.h>
 
-// Then include local headers
+// Local includes
 #include "utils/Logger.hpp"
 #include "utils/Parameters.hpp"
 #include "utils/System.hpp"
