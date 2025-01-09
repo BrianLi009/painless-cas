@@ -31,7 +31,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 const int firstReduceDB = 2000;
 const int incReduceDB = 300;
 
-namespace Minisat {
+namespace MapleSAT {
 
 //=================================================================================================
 // Solver -- the main class:

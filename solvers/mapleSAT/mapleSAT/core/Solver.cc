@@ -54,7 +54,7 @@ double canontimearr[MAXORDER] = {};
 double noncanontimearr[MAXORDER] = {};
 double gubtime = 0;
 
-using namespace Minisat;
+using namespace MapleSAT;
 
 int N = 0; // Number of edge variables
 

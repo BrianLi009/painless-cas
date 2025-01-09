@@ -21,7 +21,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "../utils/Options.h"
 #include "../utils/ParseUtils.h"
 
-using namespace Minisat;
+using namespace MapleSAT;
 
 void Minisat::parseOptions(int& argc, char** argv, bool strict)
 {
