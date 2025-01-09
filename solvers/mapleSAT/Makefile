@@ -59,7 +59,7 @@ SOMAJOR=2
 SOMINOR=1
 SORELEASE?=.0#   Declare empty to leave out from library file name.
 
-MAPLE_CXXFLAGS = -I. -I../../libs/m4ri-20200125 -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -Wall -Wno-parentheses -Wextra -std=c++11
+MAPLE_CXXFLAGS = -I. -ImapleSAT -I../../libs/m4ri-20200125 -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -Wall -Wno-parentheses -Wextra -std=c++11
 MAPLE_LDFLAGS  = -Wall -lz -L../../libs/m4ri-20200125/.libs -lm4ri
 
 ECHO=@echo
