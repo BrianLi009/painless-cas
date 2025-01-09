@@ -15,7 +15,7 @@
 using namespace Minisat;
 
 // Macros for minisat literal representation conversion
-#define MINI_LIT(lit) lit > 0 ? MapleSAT::mkLit(lit - 1, false) : MapleSAT::mkLit((-lit) - 1, true)
+#define MINI_LIT(lit) lit > 0 ? mkLit(lit - 1, false) : mkLit((-lit) - 1, true)
 
 #define INT_LIT(lit) sign(lit) ? -(var(lit) + 1) : (var(lit) + 1)
 
