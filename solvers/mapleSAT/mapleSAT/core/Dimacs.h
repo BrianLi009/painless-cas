@@ -23,15 +23,10 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include <stdio.h>
 
-#include "utils/ParseUtils.h"
-#include "core/SolverTypes.h"
+#include "../utils/ParseUtils.h"
+#include "../core/SolverTypes.h"
 
 namespace Minisat {
-
-// Add these using declarations at the start of the namespace
-using Minisat::Lit;
-using Minisat::mkLit;
-using Minisat::vec;
 
 //=================================================================================================
 // DIMACS Parser:
