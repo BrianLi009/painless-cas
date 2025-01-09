@@ -2,6 +2,7 @@
 #include <mapleSAT/mapleSAT/core/Dimacs.h>
 #include <mapleSAT/mapleSAT/simp/SimpSolver.h>
 #include <mapleSAT/mapleSAT/utils/System.h>
+#include <mapleSAT/mapleSAT/mtl/Vec.h>
 
 #include "utils/Logger.hpp"
 #include "utils/Parameters.hpp"
