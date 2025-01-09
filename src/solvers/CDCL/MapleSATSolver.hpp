@@ -26,7 +26,7 @@ struct parameter
 };
 
 // Some forward declatarations for MapleSAT
-namespace MapleSAT {
+namespace Minisat {
 class SimpSolver;
 class Lit;
 template<class T>
