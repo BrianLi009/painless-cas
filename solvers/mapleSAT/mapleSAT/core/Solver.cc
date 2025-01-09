@@ -20,11 +20,11 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include <math.h>
 
-#include "mtl/Sort.h"
-#include "core/Solver.h"
-#include "simp/SimpSolver.h"
-#include "core/Dimacs.h"
-#include "utils/System.h"
+#include "../mtl/Sort.h"
+#include "../core/Solver.h"
+#include "../simp/SimpSolver.h"
+#include "../core/Dimacs.h"
+#include "../utils/System.h"
 
 #define MAXORDER 39
 

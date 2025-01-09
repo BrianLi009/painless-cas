@@ -173,7 +173,7 @@ $(CADICAL_BUILD)/libcadical.a:
 $(MAPLE_BUILD)/libmapleCOMSPS.a:
 	$(MAKE) -C $(SOLVERS_DIR)/mapleCOMSPS r
 
-$(MAPLE_BUILD)/libmapleSAT.a:
+$(MAPLES_BUILD)/libmapleSAT.a:
 	$(MAKE) -C $(SOLVERS_DIR)/mapleSAT r
 
 $(M4RI_DIR)/.libs/libm4ri.a:
