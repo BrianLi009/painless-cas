@@ -23,7 +23,8 @@ enum class SolverCdclType
 	KISSAT = 4,
 	MAPLECOMSPS = 5,
 	KISSATMAB = 6,
-	KISSATINC = 7
+	KISSATINC = 7,
+	MAPLESAT = 8
 };
 
 /// Structure for solver statistics

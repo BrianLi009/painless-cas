@@ -13,6 +13,7 @@
 #include "solvers/CDCL/KissatMABSolver.hpp"
 #include "solvers/CDCL/Lingeling.hpp"
 #include "solvers/CDCL/MapleCOMSPSSolver.hpp"
+#include "solvers/CDCL/MapleSAT.hpp"
 #include "solvers/CDCL/MiniSat.hpp"
 #include "solvers/LocalSearch/YalSat.hpp"
 
@@ -107,6 +108,13 @@ SolverFactory::createSolver(char type, char importDBType, std::shared_ptr<Solver
 #ifdef MAPLECOMSPS_
 		case 'M':
 			createdSolver = std::make_shared<MapleCOMSPSSolver>(id, importDB);
+			return SolverAlgorithmType::CDCL;
+			// break;
+#endif
+
+#ifdef MAPLESAT_
+		case 'C':
+			createdSolver = std::make_shared<MapleCSATSolver>(id, importDB);
 			return SolverAlgorithmType::CDCL;
 			// break;
 #endif
