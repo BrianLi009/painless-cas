@@ -25,8 +25,8 @@ struct parameter
 	int targetinc;
 };
 
-// Forward declarations in Minisat namespace
-namespace Minisat {
+// Forward declarations in MapleSAT namespace
+namespace MapleSAT {
 	class SimpSolver;
 	class Lit;
 	template<class T>
@@ -110,7 +110,7 @@ class MapleSATSolver : public SolverCdclInterface
 
   protected:
 	/// Pointer to a MapleSAT solver.
-	Minisat::SimpSolver* solver;
+	MapleSAT::SimpSolver* solver;
 
 	/// Buffer used to import clauses (units included).
 	std::unique_ptr<ClauseDatabase> unitsToImport;
@@ -122,9 +122,9 @@ class MapleSATSolver : public SolverCdclInterface
 	std::atomic<bool> stopSolver;
 
 	/// Callback to export/import clauses.
-	friend Minisat::Lit cbkMapleSATImportUnit(void*);
-	friend bool cbkMapleSATImportClause(void*, unsigned int*, Minisat::vec<Minisat::Lit>&);
-	friend void cbkMapleSATExportClause(void*, unsigned int, Minisat::vec<Minisat::Lit>&);
+	friend MapleSAT::Lit cbkMapleSATImportUnit(void*);
+	friend bool cbkMapleSATImportClause(void*, unsigned int*, MapleSAT::vec<MapleSAT::Lit>&);
+	friend void cbkMapleSATExportClause(void*, unsigned int, MapleSAT::vec<MapleSAT::Lit>&);
 
   public:
 	;

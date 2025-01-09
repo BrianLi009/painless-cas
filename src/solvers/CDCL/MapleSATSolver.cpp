@@ -12,7 +12,7 @@
 
 #include <iomanip>
 
-using namespace Minisat;
+using namespace MapleSAT;
 
 // Macros for minisat literal representation conversion
 #define MINI_LIT(lit) lit > 0 ? mkLit(lit - 1, false) : mkLit((-lit) - 1, true)
