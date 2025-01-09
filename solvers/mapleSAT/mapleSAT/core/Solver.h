@@ -19,8 +19,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 **************************************************************************************************/
 #define UNEMBED_SUBGRAPH_CHECK
 
-#ifndef Minisat_Solver_h
-#define Minisat_Solver_h
+#ifndef MapleSAT_Solver_h
+#define MapleSAT_Solver_h
 
 #include "../mtl/Vec.h"
 #include "../mtl/Heap.h"

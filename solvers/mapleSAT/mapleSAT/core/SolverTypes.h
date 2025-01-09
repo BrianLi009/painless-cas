@@ -19,8 +19,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 **************************************************************************************************/
 
 
-#ifndef Minisat_SolverTypes_h
-#define Minisat_SolverTypes_h
+#ifndef MapleSAT_SolverTypes_h
+#define MapleSAT_SolverTypes_h
 
 #define VSIDS 0
 #define CHB 1
