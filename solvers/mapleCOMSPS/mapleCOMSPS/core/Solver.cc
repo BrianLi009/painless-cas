@@ -1,3 +1,22 @@
+/***************************************************************************************[Solver.cc]
+MiniSat -- Copyright (c) 2003-2006, Niklas Een, Niklas Sorensson
+           Copyright (c) 2007-2010, Niklas Sorensson
+
+Chanseok Oh's MiniSat Patch Series -- Copyright (c) 2015, Chanseok Oh
+...
+*/
+
+#include <math.h>
+#include <string.h>
+#include "../mtl/Sort.h"
+#include "../core/Solver.h"
+#include "../utils/System.h"
+
+using namespace MapleCOMSPS;
+
+#ifdef BIN_DRUP
+int Solver::buf_len = 0;
+unsigned char Solver::drup_buf[2 * 1024 * 1024];
 unsigned char* Solver::buf_ptr = drup_buf;
 #endif
 
@@ -1940,11 +1959,11 @@ void Solver::callbackFunction(bool /*complete*/, vec<vec<Lit> >& out_learnts) {
     int col = assignment.size() / (order * (order-1) / 2);
     if (!is_canonical(assignment, col)) {
         // Create blocking clause
-        vec<Lit> blocking;  // Changed from pointer to object
+        vec<Lit> blocking;
         for (int i = 0; i < assignment.size(); i++) {
             blocking.push(~assignment[i]);
         }
-        out_learnts.push(blocking);  // Now pushing an object, not a pointer
+        out_learnts.push(blocking);
     }
 }
 
