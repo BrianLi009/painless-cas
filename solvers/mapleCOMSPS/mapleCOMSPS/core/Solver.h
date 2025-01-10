@@ -35,6 +35,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #endif
 
 #include <memory>
+#include <set>
 
 #include "../core/SolverTypes.h"
 #include "../mtl/Alg.h"
@@ -251,6 +252,14 @@ class Solver
 	// Strengthening
 	bool strengthening;
 	void setStrengthening(bool b);
+
+	// Callback related members
+	bool use_callback = false;
+	int n = 0; // Number of nodes in graph
+	int zerostoadd = 0; // Number of initial variables to set to false
+	
+	// Callback function
+	void callbackFunction(bool complete, vec<vec<Lit> >& out_learnts);
 
   protected:
 	// Helper structures:
@@ -536,6 +545,8 @@ class Solver
 	int stamp(Lit p, int stamp_time, bool use_bin_learnts);
 	inline bool implExistsByBin(Lit p, bool use_bin_learnts) const;
 	inline bool isRoot(Lit p, bool use_bin_learnts) const;
+
+	vec<vec<Lit> > callbackLearntClauses;
 };
 
 //=================================================================================================

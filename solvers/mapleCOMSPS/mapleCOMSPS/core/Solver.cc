@@ -1275,6 +1275,9 @@ Solver::search(int& nof_conflicts)
 	bool cached = false;
 	starts++;
 
+	// Initialize callback learnt clauses
+	vec<vec<Lit> > callback_learnts;
+
 	for (;;) {
 		if (decisionLevel() == 0) { // We import clauses
 			if (!importUnitClauses())
@@ -1430,6 +1433,29 @@ Solver::search(int& nof_conflicts)
 			// Increase decision level and enqueue 'next'
 			newDecisionLevel();
 			uncheckedEnqueue(next);
+		}
+
+		// Call the callback function
+		if (status != l_Undef) {
+			callback_learnts.clear();
+			callbackFunction(status == l_True, callback_learnts);
+			
+			// Process any learnt clauses from callback
+			for (int i = 0; i < callback_learnts.size(); i++) {
+				if (callback_learnts[i].size() == 1) {
+					uncheckedEnqueue(callback_learnts[i][0]);
+				} else {
+					CRef cr = ca.alloc(callback_learnts[i], true);
+					learnts_core.push(cr);
+					attachClause(cr);
+				}
+			}
+			
+			// If callback produced clauses, continue searching
+			if (callback_learnts.size() > 0) {
+				status = l_Undef;
+				continue;
+			}
 		}
 	}
 }
@@ -1659,7 +1685,7 @@ Solver::toDimacs(FILE* f, const vec<Lit>& assumps)
 
 	for (int i = 0; i < assumptions.size(); i++) {
 		assert(value(assumptions[i]) != l_False);
-		fprintf(f, "%s%d 0\n", sign(assumptions[i]) ? "-" : "", mapVar(var(assumptions[i]), map, max) + 1);
+		fprintf(f, "%s%d 0\n", sign(assumptions[i]) ? "-" : "", mapVar(var(assumptions[i]), map, max) + 1));
 	}
 
 	for (int i = 0; i < clauses.size(); i++)
@@ -1942,4 +1968,19 @@ bool
 Solver::isRoot(Lit p, bool use_bin_learnts) const
 {
 	return !implExistsByBin(~p, use_bin_learnts);
+}
+
+void Solver::callbackFunction(bool complete, vec<vec<Lit> >& out_learnts) {
+    if (!use_callback)
+        return;
+
+    // Clear any previous callback learnt clauses
+    callbackLearntClauses.clear();
+
+    // Process the callback results
+    for (int i = 0; i < callbackLearntClauses.size(); i++) {
+        vec<Lit> learnt_clause;
+        callbackLearntClauses[i].copyTo(learnt_clause);
+        out_learnts.push(learnt_clause);
+    }
 }
