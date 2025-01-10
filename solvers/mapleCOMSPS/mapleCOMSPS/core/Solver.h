@@ -142,6 +142,7 @@ class Solver
 	vec<Lit> importedClause;
 	void* issuer; // used as the callback parameter
 
+	// Callback functions
 	Lit (*cbkImportUnit)(void*);
 	bool (*cbkImportClause)(void*, unsigned*, vec<Lit>&);
 	void (*cbkExportClause)(void*, unsigned, vec<Lit>&); // callback for clause learning
@@ -547,6 +548,25 @@ class Solver
 	inline bool isRoot(Lit p, bool use_bin_learnts) const;
 
 	vec<vec<Lit> > callbackLearntClauses;
+
+	// Canonicity checking
+	bool pseudo_test;
+	int order;
+	int skip_last;
+	int start_col;
+	int inc_col;
+	int lookahead;
+	
+	// Statistics for canonicity
+	long canon;
+	long noncanon;
+	double canontime;
+	double noncanontime;
+	long proofsize;
+	long canonarr[40];
+	long noncanonarr[40];
+	double canontimearr[40];
+	double noncanontimearr[40];
 };
 
 //=================================================================================================

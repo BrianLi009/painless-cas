@@ -174,6 +174,23 @@ Solver::Solver()
 	, conflict_budget(-1)
 	, propagation_budget(-1)
 	, asynch_interrupt(false)
+	, issuer(NULL)
+	, cbkImportUnit(NULL) 
+	, cbkImportClause(NULL)
+	, cbkExportClause(NULL)
+
+	// Add to constructor initialization list:
+	, pseudo_test(true)
+	, order(0)
+	, skip_last(0)
+	, start_col(2)
+	, inc_col(1)
+	, lookahead(0)
+	, canon(0)
+	, noncanon(0)
+	, canontime(0)
+	, noncanontime(0)
+	, proofsize(0)
 {
 }
 
@@ -399,62 +416,42 @@ Solver::addClause_(vec<Lit>& ps)
 bool
 Solver::importUnitClauses()
 {
-	assert(decisionLevel() == 0);
-
-	if (cbkImportUnit == NULL)
+	if (cbkImportUnit == NULL) 
 		return true;
+
 	Lit l;
 	while ((l = cbkImportUnit(issuer)) != lit_Undef) {
 		if (value(var(l)) == l_Undef) {
-			uncheckedEnqueue(l);
-		} else if (value(l) == l_False) {
+			if (!enqueue(l))
+				return false;
+		} else if (value(l) == l_False)
 			return false;
-		}
 	}
-
 	return true;
 }
 
 bool
 Solver::importClauses()
 {
-	assert(decisionLevel() == 0);
-
 	if (cbkImportClause == NULL)
 		return true;
-	int k, l;
-	unsigned lbd;
-	bool alreadySat;
-	while (cbkImportClause(issuer, &lbd, importedClause)) {
-		alreadySat = false;
-		// Simplify clause before add
-		for (k = l = 0; k < importedClause.size(); k++) {
-			if (value(importedClause[k]) == l_True) {
-				alreadySat = true;
-				break;
-			} else if (value(importedClause[k]) == l_Undef) {
-				importedClause[l++] = importedClause[k];
-			}
-		}
-		importedClause.shrink(k - l);
 
-		if (alreadySat) {
-			importedClause.clear();
-			continue;
-		}
-
-		if (importedClause.size() == 0) {
+	unsigned glue;
+	while (cbkImportClause(issuer, &glue, importedClause)) {
+		if (importedClause.size() == 0)
 			return false;
-		} else if (importedClause.size() == 1) {
-			uncheckedEnqueue(importedClause[0]);
+		if (importedClause.size() == 1) {
+			if (value(importedClause[0]) == l_False)
+				return false;
+			if (value(importedClause[0]) == l_Undef && !enqueue(importedClause[0]))
+				return false;
 		} else {
 			CRef cr = ca.alloc(importedClause, true);
-			lbd = importedClause.size();
-			ca[cr].set_lbd(lbd);
-			if (lbd <= core_lbd_cut) {
+			ca[cr].set_lbd(glue);
+			if (glue <= core_lbd_cut) {
 				learnts_core.push(cr);
 				ca[cr].mark(CORE);
-			} else if (lbd <= 6) {
+			} else if (glue <= 6) {
 				learnts_tier2.push(cr);
 				ca[cr].mark(TIER2);
 				ca[cr].touched() = conflicts;
@@ -463,10 +460,12 @@ Solver::importClauses()
 				claBumpActivity(ca[cr]);
 			}
 			attachClause(cr);
+			if (value(importedClause[0]) == l_False)
+				return false;
+			if (value(importedClause[0]) == l_Undef && !enqueue(importedClause[0], cr))
+				return false;
 		}
-		importedClause.clear();
 	}
-
 	return true;
 }
 
@@ -1637,7 +1636,7 @@ Solver::toDimacs(FILE* f, Clause& c, vec<Var>& map, Var& max)
 
 	for (int i = 0; i < c.size(); i++)
 		if (value(c[i]) != l_False)
-			fprintf(f, "%s%d ", sign(c[i]) ? "-" : "", mapVar(var(c[i]), map, max) + 1);
+			fprintf(f, "%s%d ", sign(c[i]) ? "-" : "", mapVar(var(c[i]), map, max) + 1));
 	fprintf(f, "0\n");
 }
 
@@ -1974,13 +1973,94 @@ void Solver::callbackFunction(bool complete, vec<vec<Lit> >& out_learnts) {
     if (!use_callback)
         return;
 
-    // Clear any previous callback learnt clauses
-    callbackLearntClauses.clear();
-
-    // Process the callback results
-    for (int i = 0; i < callbackLearntClauses.size(); i++) {
-        vec<Lit> learnt_clause;
-        callbackLearntClauses[i].copyTo(learnt_clause);
-        out_learnts.push(learnt_clause);
+    // Check canonicity
+    vec<Lit> assignment;
+    for (int i = 0; i < trail.size(); i++) {
+        assignment.push(trail[i]);
     }
+    
+    int col = assignment.size() / (order * (order-1) / 2);
+    if (!is_canonical(assignment, col)) {
+        // Create blocking clause
+        vec<Lit> blocking;
+        for (int i = 0; i < assignment.size(); i++) {
+            blocking.push(~assignment[i]);
+        }
+        out_learnts.push(blocking);
+    }
+}
+
+bool Solver::is_canonical(vec<Lit>& lits, int col) {
+    if (col < start_col || col > order - skip_last)
+        return true;
+    if ((col - start_col) % inc_col != 0)
+        return true;
+    if (col + lookahead > order)
+        return true;
+
+    double starttime = cpuTime();
+    bool result = true;
+
+    // Build adjacency matrix
+    vec<vec<bool> > adj;
+    adj.growTo(order);
+    for (int i = 0; i < order; i++)
+        adj[i].growTo(order, false);
+
+    // Fill adjacency matrix from literals
+    int idx = 0;
+    for (int i = 0; i < order; i++) {
+        for (int j = i + 1; j < order; j++) {
+            if (value(lits[idx++]) == l_True)
+                adj[i][j] = adj[j][i] = true;
+        }
+    }
+
+    // Check canonicity
+    if (pseudo_test) {
+        // Pseudo-canonicity test
+        for (int i = 0; i < col; i++) {
+            for (int j = i + 1; j < col; j++) {
+                // Check if swapping vertices i and j creates a lexicographically smaller matrix
+                bool can_swap = true;
+                for (int k = 0; k < i; k++) {
+                    if (adj[k][i] != adj[k][j]) {
+                        can_swap = false;
+                        break;
+                    }
+                }
+                if (can_swap) {
+                    for (int k = i + 1; k < j; k++) {
+                        if (adj[i][k] != adj[j][k]) {
+                            can_swap = false;
+                            break;
+                        }
+                    }
+                    if (can_swap && adj[i][j]) {
+                        result = false;
+                        goto done;
+                    }
+                }
+            }
+        }
+    } else {
+        // Full canonicity test
+        // TODO: Implement full canonicity test if needed
+    }
+
+done:
+    double endtime = cpuTime();
+    if (result) {
+        canon++;
+        canontime += endtime - starttime;
+        canonarr[col]++;
+        canontimearr[col] += endtime - starttime;
+    } else {
+        noncanon++;
+        noncanontime += endtime - starttime;
+        noncanonarr[col]++;
+        noncanontimearr[col] += endtime - starttime;
+    }
+
+    return result;
 }
