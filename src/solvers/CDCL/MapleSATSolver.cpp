@@ -85,6 +85,11 @@ MapleSATSolver::MapleSATSolver(int id, const std::shared_ptr<ClauseDatabase>& cl
 
 	this->unitsToImport = std::make_unique<ClauseDatabaseSingleBuffer>(__globalParameters__.defaultClauseBufferSize);
 
+	solver->cbkExportClause = cbkMapleSATExportClause;
+	solver->cbkImportClause = cbkMapleSATImportClause;
+	solver->cbkImportUnit = cbkMapleSATImportUnit;
+	solver->issuer = this;
+
 	initializeTypeId<MapleSATSolver>();
 }
 

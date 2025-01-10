@@ -55,6 +55,17 @@ public:
     bool    addClause (Lit p, Lit q, Lit r);                    // Add a ternary clause to the solver. 
     bool    addClause_(      vec<Lit>& ps);                     // Add a clause to the solver without making superflous internal copy. Will
                                                                 // change the passed vector 'ps'.
+    // Parallel support
+	//
+	bool importClauses();
+	bool importUnitClauses();
+
+	vec<Lit> importedClause;
+	void* issuer; // used as the callback parameter
+
+	Lit (*cbkImportUnit)(void*);
+	bool (*cbkImportClause)(void*, unsigned*, vec<Lit>&);
+	void (*cbkExportClause)(void*, unsigned, vec<Lit>&); // callback for clause learning
 
     // Solving:
     //

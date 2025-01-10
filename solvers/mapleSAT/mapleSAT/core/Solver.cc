@@ -1811,6 +1811,8 @@ lbool Solver::search(int nof_conflicts)
 
             learnt_clause.clear();
             analyze(confl, learnt_clause, backtrack_level);
+            if (cbkExportClause != NULL)
+				cbkExportClause(issuer, lbd, learnt_clause);
 
             cancelUntil(backtrack_level);
 
