@@ -260,7 +260,7 @@ class Solver
 	int zerostoadd = 0; // Number of initial variables to set to false
 	
 	// Callback function
-	void callbackFunction(bool complete, vec<vec<Lit> >& out_learnts);
+	void callbackFunction(bool /*complete*/, vec<vec<Lit> >& out_learnts);
 
   protected:
 	// Helper structures:
@@ -567,6 +567,8 @@ class Solver
 	long noncanonarr[40];
 	double canontimearr[40];
 	double noncanontimearr[40];
+
+	bool is_canonical(vec<Lit>& lits, int col);
 };
 
 //=================================================================================================

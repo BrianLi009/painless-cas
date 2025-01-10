@@ -1969,7 +1969,7 @@ Solver::isRoot(Lit p, bool use_bin_learnts) const
 	return !implExistsByBin(~p, use_bin_learnts);
 }
 
-void Solver::callbackFunction(bool complete, vec<vec<Lit> >& out_learnts) {
+void Solver::callbackFunction(bool /*complete*/, vec<vec<Lit> >& out_learnts) {
     if (!use_callback)
         return;
 
@@ -1982,9 +1982,9 @@ void Solver::callbackFunction(bool complete, vec<vec<Lit> >& out_learnts) {
     int col = assignment.size() / (order * (order-1) / 2);
     if (!is_canonical(assignment, col)) {
         // Create blocking clause
-        vec<Lit> blocking;
+        vec<Lit>* blocking = new vec<Lit>();
         for (int i = 0; i < assignment.size(); i++) {
-            blocking.push(~assignment[i]);
+            blocking->push(~assignment[i]);
         }
         out_learnts.push(blocking);
     }

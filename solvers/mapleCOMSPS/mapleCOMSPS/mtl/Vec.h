@@ -165,6 +165,11 @@ class vec
 		copy.sz = sz;
 		memcpy(copy.data, data, sizeof(T) * cap);
 	}
+
+	vec<T>& operator=(const vec<T>& other) {
+		other.copyTo(*this);
+		return *this;
+	}
 };
 
 template<class T>
