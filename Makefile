@@ -24,7 +24,6 @@ RELEASE_BUILD_DIR := $(BUILD_DIR)/release
 # Solver and library directories
 # ==============================
 MAPLE_BUILD := $(SOLVERS_DIR)/mapleCOMSPS/build/release/lib
-MAPLES_BUILD := $(SOLVERS_DIR)/mapleSAT/build/release/lib
 GLUCOSE_BUILD := $(SOLVERS_DIR)/glucose/parallel
 MINISAT_BUILD := $(SOLVERS_DIR)/minisat/build/release/lib
 LINGELING_BUILD := $(SOLVERS_DIR)/lingeling
@@ -46,7 +45,6 @@ DEPENDENCIES := $(MINISAT_BUILD)/libminisat.a \
                 $(YALSAT_BUILD)/libyals.a \
                 $(CADICAL_BUILD)/libcadical.a \
                 $(MAPLE_BUILD)/libmapleCOMSPS.a \
-				$(MAPLES_BUILD)/libmapleSAT.a \
                 $(M4RI_DIR)/.libs/libm4ri.a
 
 # Library flags
@@ -58,7 +56,6 @@ LIBS := -l:liblgl.a -L$(LINGELING_BUILD) \
 		-l:libglucose.a -L$(GLUCOSE_BUILD) \
 		-l:libcadical.a -L$(CADICAL_BUILD) \
 		-l:libmapleCOMSPS.a -L$(MAPLE_BUILD) \
-		-l:libmapleSAT.a -L$(MAPLES_BUILD) \
 		-l:libkissat_mab.a -L$(KISSATMAB_BUILD) \
 		-l:libkissat_inc.a -L$(KISSATINC_BUILD) \
 		-l:libm4ri.a -L./libs/m4ri-20200125/.libs \
@@ -135,7 +132,6 @@ kissat_inc: $(KISSATINC_BUILD)/libkissat_inc.a
 yalsat: $(YALSAT_BUILD)/libyals.a
 cadical: $(CADICAL_BUILD)/libcadical.a
 maple: $(MAPLE_BUILD)/libmapleCOMSPS.a
-maples: $(MAPLES_BUILD)/libmapleSAT.a
 m4ri: $(M4RI_DIR)/.libs/libm4ri.a
 
 # Library targets
@@ -173,9 +169,6 @@ $(CADICAL_BUILD)/libcadical.a:
 $(MAPLE_BUILD)/libmapleCOMSPS.a:
 	$(MAKE) -C $(SOLVERS_DIR)/mapleCOMSPS r
 
-$(MAPLES_BUILD)/libmapleSAT.a:
-	$(MAKE) -C $(SOLVERS_DIR)/mapleSAT r
-
 $(M4RI_DIR)/.libs/libm4ri.a:
 	cd $(M4RI_DIR) && autoreconf --install && ./configure --enable-thread-safe
 	$(MAKE) -C $(M4RI_DIR)
@@ -196,7 +189,6 @@ cleansolvers:
 	$(MAKE) clean -C $(SOLVERS_DIR)/cadical -f makefile.in
 	rm -rf $(SOLVERS_DIR)/cadical/build
 	$(MAKE) clean -C $(SOLVERS_DIR)/mapleCOMSPS
-	$(MAKE) clean -C $(SOLVERS_DIR)/mapleSAT
 	$(MAKE) clean -C $(SOLVERS_DIR)/minisat
 	$(MAKE) clean -C $(SOLVERS_DIR)/glucose
 	if [ -f $(SOLVERS_DIR)/lingeling/makefile ]; then $(MAKE) -C $(SOLVERS_DIR)/lingeling clean; fi
