@@ -1,35 +1,3 @@
-/***************************************************************************************[Solver.cc]
-MiniSat -- Copyright (c) 2003-2006, Niklas Een, Niklas Sorensson
-		   Copyright (c) 2007-2010, Niklas Sorensson
-
-Chanseok Oh's MiniSat Patch Series -- Copyright (c) 2015, Chanseok Oh
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-associated documentation files (the "Software"), to deal in the Software without restriction,
-including without limitation the rights to use, copy, modify, merge, publish, distribute,
-sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or
-substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
-OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-**************************************************************************************************/
-
-#include <math.h>
-
-#include "../core/Solver.h"
-#include "../mtl/Sort.h"
-
-using namespace MapleCOMSPS;
-
-#ifdef BIN_DRUP
-int Solver::buf_len = 0;
-unsigned char Solver::drup_buf[2 * 1024 * 1024];
 unsigned char* Solver::buf_ptr = drup_buf;
 #endif
 
@@ -1636,22 +1604,12 @@ Solver::toDimacs(FILE* f, Clause& c, vec<Var>& map, Var& max)
 
 	for (int i = 0; i < c.size(); i++)
 		if (value(c[i]) != l_False)
-			fprintf(f, "%s%d ", sign(c[i]) ? "-" : "", mapVar(var(c[i]), map, max) + 1));
+			fprintf(f, "%s%d ", sign(c[i]) ? "-" : "", mapVar(var(c[i]), map, max) + 1);
 	fprintf(f, "0\n");
 }
 
 void
-Solver::toDimacs(const char* file, const vec<Lit>& assumps)
-{
-	FILE* f = fopen(file, "wr");
-	if (f == NULL)
-		fprintf(stderr, "could not open file %s\n", file), exit(1);
-	toDimacs(f, assumps);
-	fclose(f);
-}
-
-void
-Solver::toDimacs(FILE* f, const vec<Lit>& assumps)
+Solver::toDimacs(FILE* f, const vec<Lit>& /*assumps*/)
 {
 	// Handle case when solver is in contradictory state:
 	if (!ok) {
@@ -1684,7 +1642,7 @@ Solver::toDimacs(FILE* f, const vec<Lit>& assumps)
 
 	for (int i = 0; i < assumptions.size(); i++) {
 		assert(value(assumptions[i]) != l_False);
-		fprintf(f, "%s%d 0\n", sign(assumptions[i]) ? "-" : "", mapVar(var(assumptions[i]), map, max) + 1));
+		fprintf(f, "%s%d 0\n", sign(assumptions[i]) ? "-" : "", mapVar(var(assumptions[i]), map, max) + 1);
 	}
 
 	for (int i = 0; i < clauses.size(); i++)
@@ -1815,7 +1773,7 @@ Solver::stampAll(bool use_bin_learnts)
 }
 
 int
-Solver::stamp(Lit p, int stamp_time, bool use_bin_learnts)
+Solver::stamp(Lit p, int stamp_time, bool /*use_bin_learnts*/)
 {
 	assert(value(p) == l_Undef && !discovered[toInt(p)] && !finished[toInt(p)]);
 	assert(rec_stack.size() == 0 && scc.size() == 0);
@@ -1982,11 +1940,11 @@ void Solver::callbackFunction(bool /*complete*/, vec<vec<Lit> >& out_learnts) {
     int col = assignment.size() / (order * (order-1) / 2);
     if (!is_canonical(assignment, col)) {
         // Create blocking clause
-        vec<Lit>* blocking = new vec<Lit>();
+        vec<Lit> blocking;  // Changed from pointer to object
         for (int i = 0; i < assignment.size(); i++) {
-            blocking->push(~assignment[i]);
+            blocking.push(~assignment[i]);
         }
-        out_learnts.push(blocking);
+        out_learnts.push(blocking);  // Now pushing an object, not a pointer
     }
 }
 
