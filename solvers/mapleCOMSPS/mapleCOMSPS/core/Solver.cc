@@ -1289,18 +1289,7 @@ Solver::search(int& nof_conflicts)
 				uncheckedEnqueue(learnt_clause[0]);
 			} else {
 				CRef cr = ca.alloc(learnt_clause, true);
-				ca[cr].set_lbd(lbd);
-				if (lbd <= core_lbd_cut) {
-					learnts_core.push(cr);
-					ca[cr].mark(CORE);
-				} else if (lbd <= 6) {
-					learnts_tier2.push(cr);
-					ca[cr].mark(TIER2);
-					ca[cr].touched() = conflicts;
-				} else {
-					learnts_local.push(cr);
-					claBumpActivity(ca[cr]);
-				}
+				learnts_core.push(cr);
 				attachClause(cr);
 				uncheckedEnqueue(learnt_clause[0], cr);
 			}
@@ -1341,7 +1330,14 @@ Solver::search(int& nof_conflicts)
 				return status;
 			}
 
-			// ... rest of the search function ...
+			// Make new decision
+			Lit next = pickBranchLit();
+			if (next == lit_Undef)
+				return l_True;  // Model found
+				
+			// Increase decision level and enqueue 'next'
+			newDecisionLevel();
+			uncheckedEnqueue(next);
 		}
 	}
 }
