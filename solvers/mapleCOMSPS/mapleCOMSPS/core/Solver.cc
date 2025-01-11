@@ -1561,7 +1561,7 @@ Solver::toDimacs(FILE* f, const vec<Lit>& assumps)
 
 	for (int i = 0; i < assumptions.size(); i++) {
 		assert(value(assumptions[i]) != l_False);
-		fprintf(f, "%s%d 0\n", sign(assumptions[i]) ? "-" : "", mapVar(var(assumptions[i]), map, max) + 1));
+		fprintf(f, "%s%d 0\n", sign(assumptions[i]) ? "-" : "", mapVar(var(assumptions[i]), map, max) + 1);
 	}
 
 	for (int i = 0; i < clauses.size(); i++)
