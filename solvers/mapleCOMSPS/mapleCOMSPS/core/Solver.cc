@@ -168,7 +168,7 @@ Solver::Solver()
 
 	// Add to constructor initialization list:
 	, pseudo_test(true)
-	, order(0)
+	, order(9)
 	, skip_last(0)
 	, start_col(2)
 	, inc_col(1)
@@ -178,6 +178,7 @@ Solver::Solver()
 	, canontime(0)
 	, noncanontime(0)
 	, proofsize(0)
+	, use_callback(true)
 {
 }
 
@@ -251,6 +252,18 @@ Solver::Solver(const Solver& s)
 	, propagation_budget(s.propagation_budget)
 	, asynch_interrupt(s.asynch_interrupt)
 
+	, pseudo_test(s.pseudo_test)
+	, order(s.order)
+	, skip_last(s.skip_last)
+	, start_col(s.start_col)
+	, inc_col(s.inc_col)
+	, lookahead(s.lookahead)
+	, canon(s.canon)
+	, noncanon(s.noncanon)
+	, canontime(s.canontime)
+	, noncanontime(s.noncanontime)
+	, proofsize(s.proofsize)
+	, use_callback(s.use_callback)
 {
 	// Copy clauses.
 	s.ca.copyTo(ca);
