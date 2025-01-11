@@ -861,32 +861,30 @@ Solver::okay() const
 inline void
 Solver::toDimacs(const char* file)
 {
+	vec<Lit> dummy;
+	toDimacs(file, dummy);
+}
+inline void
+Solver::toDimacs(const char* file, const vec<Lit>& assumps)
+{
 	vec<Lit> as;
+	as.copyTo(assumps);
 	toDimacs(file, as);
 }
 inline void
-Solver::toDimacs(const char* file, Lit p)
+Solver::toDimacs(FILE* f, const vec<Lit>& assumps)
 {
 	vec<Lit> as;
-	as.push(p);
-	toDimacs(file, as);
+	as.copyTo(assumps);
+	toDimacs(f, as);
 }
 inline void
-Solver::toDimacs(const char* file, Lit p, Lit q)
+Solver::toDimacs(FILE* f, Clause& c, vec<Var>& map, Var& max)
 {
 	vec<Lit> as;
-	as.push(p);
-	as.push(q);
-	toDimacs(file, as);
-}
-inline void
-Solver::toDimacs(const char* file, Lit p, Lit q, Lit r)
-{
-	vec<Lit> as;
-	as.push(p);
-	as.push(q);
-	as.push(r);
-	toDimacs(file, as);
+	as.push(c[0]);
+	as.push(c[1]);
+	toDimacs(f, as);
 }
 
 //=================================================================================================
