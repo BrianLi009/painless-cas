@@ -1571,19 +1571,6 @@ Solver::toDimacs(FILE* f, const vec<Lit>& assumps)
 		printf("c Wrote %d clauses with %d variables.\n", cnt, max);
 }
 
-void Solver::toDimacs(const char* file) {
-    vec<Lit> dummy;
-    toDimacs(file, dummy);
-}
-
-void Solver::toDimacs(const char* file, const vec<Lit>& assumps) {
-    FILE* f = fopen(file, "wr");
-    if (f == NULL)
-        fprintf(stderr, "could not open file %s\n", file), exit(1);
-    toDimacs(f, assumps);
-    fclose(f);
-}
-
 //=================================================================================================
 // Garbage Collection methods:
 
