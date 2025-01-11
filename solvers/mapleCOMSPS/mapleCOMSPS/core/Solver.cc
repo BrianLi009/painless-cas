@@ -1528,7 +1528,7 @@ Solver::toDimacs(FILE* f, Clause& c, vec<Var>& map, Var& max)
 }
 
 void
-Solver::toDimacs(FILE* f, const vec<Lit>& /*assumps*/)
+Solver::toDimacs(FILE* f, const vec<Lit>& assumps)
 {
 	// Handle case when solver is in contradictory state:
 	if (!ok) {
@@ -1545,7 +1545,7 @@ Solver::toDimacs(FILE* f, const vec<Lit>& /*assumps*/)
 	for (int i = 0; i < clauses.size(); i++)
 		if (!satisfied(ca[clauses[i]]))
 			cnt++;
-
+	
 	for (int i = 0; i < clauses.size(); i++)
 		if (!satisfied(ca[clauses[i]])) {
 			Clause& c = ca[clauses[i]];
@@ -1561,7 +1561,7 @@ Solver::toDimacs(FILE* f, const vec<Lit>& /*assumps*/)
 
 	for (int i = 0; i < assumptions.size(); i++) {
 		assert(value(assumptions[i]) != l_False);
-		fprintf(f, "%s%d 0\n", sign(assumptions[i]) ? "-" : "", mapVar(var(assumptions[i]), map, max) + 1);
+		fprintf(f, "%s%d 0\n", sign(assumptions[i]) ? "-" : "", mapVar(var(assumptions[i]), map, max) + 1));
 	}
 
 	for (int i = 0; i < clauses.size(); i++)
@@ -1569,6 +1569,19 @@ Solver::toDimacs(FILE* f, const vec<Lit>& /*assumps*/)
 
 	if (verbosity > 0)
 		printf("c Wrote %d clauses with %d variables.\n", cnt, max);
+}
+
+void Solver::toDimacs(const char* file) {
+    vec<Lit> dummy;
+    toDimacs(file, dummy);
+}
+
+void Solver::toDimacs(const char* file, const vec<Lit>& assumps) {
+    FILE* f = fopen(file, "wr");
+    if (f == NULL)
+        fprintf(stderr, "could not open file %s\n", file), exit(1);
+    toDimacs(f, assumps);
+    fclose(f);
 }
 
 //=================================================================================================
