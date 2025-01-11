@@ -569,6 +569,16 @@ class Solver
 	double noncanontimearr[40];
 
 	bool is_canonical(vec<Lit>& lits, int col);
+
+	// Static helper for mapping variables
+	static inline Var mapVar(Var x, vec<Var>& map, Var& max)
+	{
+		if (map.size() <= x || map[x] == -1) {
+			map.growTo(x + 1, -1);
+			map[x] = max++;
+		}
+		return map[x];
+	}
 };
 
 //=================================================================================================
