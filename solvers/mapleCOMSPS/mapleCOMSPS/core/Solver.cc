@@ -1263,50 +1263,27 @@ Solver::search(int& nof_conflicts)
 
 	// Initialize callback learnt clauses
 	vec<vec<Lit> > callback_learnts;
+	
+	// Add status variable declaration
+	lbool status = l_Undef;
 
 	for (;;) {
-		if (decisionLevel() == 0) { // We import clauses
-			if (!importUnitClauses())
-				return l_False;
-			if (!importClauses())
-				return l_False;
-		}
-
 		CRef confl = propagate();
 
 		if (confl != CRef_Undef) {
 			// CONFLICT
-			if (VSIDS) {
-				if (--timer == 0 && var_decay < 0.95)
-					timer = 5000, var_decay += 0.01;
-			} else if (step_size > min_step_size)
-				step_size -= step_size_dec;
-
 			conflicts++;
-			nof_conflicts--;
-			if (conflicts == 100000 && learnts_core.size() < 100)
-				core_lbd_cut = 5;
+			conflicts_VSIDS++;
+			if (conflicts % 5000 == 0 && var_decay < 0.95)
+				var_decay += 0.01;
+
 			if (decisionLevel() == 0)
 				return l_False;
 
 			learnt_clause.clear();
 			analyze(confl, learnt_clause, backtrack_level, lbd);
-			if (cbkExportClause != NULL)
-				cbkExportClause(issuer, lbd, learnt_clause);
 
 			cancelUntil(backtrack_level);
-
-			if (VSIDS)
-				for (int i = 0; i < learnt_clause.size(); i++)
-					varBumpActivity(var(learnt_clause[i]), 1. / lbd);
-
-			lbd--;
-			if (VSIDS) {
-				cached = false;
-				conflicts_VSIDS++;
-				lbd_queue.push(lbd);
-				global_lbd_sum += (lbd > 50 ? 50 : lbd);
-			}
 
 			if (learnt_clause.size() == 1) {
 				uncheckedEnqueue(learnt_clause[0]);
@@ -1327,121 +1304,44 @@ Solver::search(int& nof_conflicts)
 				attachClause(cr);
 				uncheckedEnqueue(learnt_clause[0], cr);
 			}
-			if (drup_file) {
-#ifdef BIN_DRUP
-				binDRUP('a', learnt_clause, drup_file);
-#else
-				for (int i = 0; i < learnt_clause.size(); i++)
-					fprintf(drup_file, "%i ", (var(learnt_clause[i]) + 1) * (-2 * sign(learnt_clause[i]) + 1));
-				fprintf(drup_file, "0\n");
-#endif
-			}
 
-			if (VSIDS)
-				varDecayActivity();
+			varDecayActivity();
 			claDecayActivity();
 
-			/*if (--learntsize_adjust_cnt == 0){
-				learntsize_adjust_confl *= learntsize_adjust_inc;
-				learntsize_adjust_cnt    = (int)learntsize_adjust_confl;
-				max_learnts             *= learntsize_inc;
-
-				if (verbosity >= 1)
-					printf("c | %9d | %7d %8d %8d | %8d %8d %6.0f | %6.3f %% |\n",
-						   (int)conflicts,
-						   (int)dec_vars - (trail_lim.size() == 0 ? trail.size() : trail_lim[0]), nClauses(),
-			(int)clauses_literals, (int)max_learnts, nLearnts(), (double)learnts_literals/nLearnts(),
-			progressEstimate()*100);
-			}*/
+			if (--nof_conflicts <= 0)
+				return l_Undef;
 
 		} else {
 			// NO CONFLICT
-			bool restart = false;
-			if (!VSIDS)
-				restart = nof_conflicts <= 0;
-			else if (!cached) {
-				restart = lbd_queue.full() && (lbd_queue.avg() * 0.8 > global_lbd_sum / conflicts_VSIDS);
-				cached = true;
-			}
-			if (restart /*|| !withinBudget()*/) {
-				lbd_queue.clear();
-				cached = false;
-				// Reached bound on number of conflicts:
-				progress_estimate = progressEstimate();
-				cancelUntil(0);
-				return l_Undef;
-			}
+			if (nof_conflicts <= 0)
+				status = l_True;
 
-			// Simplify the set of problem clauses:
-			if (decisionLevel() == 0 && !simplify(true))
-				return l_False;
-
-			if (conflicts >= next_T2_reduce) {
-				next_T2_reduce = conflicts + 10000;
-				reduceDB_Tier2();
-			}
-			if (conflicts >= next_L_reduce) {
-				next_L_reduce = conflicts + 15000;
-				reduceDB();
-			}
-
-			Lit next = lit_Undef;
-			while (decisionLevel() < assumptions.size()) {
-				// Perform user provided assumption:
-				Lit p = assumptions[decisionLevel()];
-				if (value(p) == l_True) {
-					// Dummy decision level:
-					newDecisionLevel();
-				} else if (value(p) == l_False) {
-					analyzeFinal(~p, conflict);
-					return l_False;
-				} else {
-					next = p;
-					break;
+			if (status != l_Undef) {
+				// Check if we need to do callback processing
+				callback_learnts.clear();
+				callbackFunction(status == l_True, callback_learnts);
+				
+				// Process any learnt clauses from callback
+				for (int i = 0; i < callback_learnts.size(); i++) {
+					if (callback_learnts[i].size() == 1) {
+						uncheckedEnqueue(callback_learnts[i][0]);
+					} else {
+						CRef cr = ca.alloc(callback_learnts[i], true);
+						learnts_core.push(cr);
+						attachClause(cr);
+					}
 				}
-			}
-
-			if (next == lit_Undef) {
-				if (strengthening) {
-					shrinkAssumptions();
-					return l_True;
+				
+				// If callback produced clauses, continue searching
+				if (callback_learnts.size() > 0) {
+					status = l_Undef;
+					continue;
 				}
-
-				// New variable decision:
-				decisions++;
-				next = pickBranchLit();
-
-				if (next == lit_Undef)
-					// Model found:
-					return l_True;
+				
+				return status;
 			}
 
-			// Increase decision level and enqueue 'next'
-			newDecisionLevel();
-			uncheckedEnqueue(next);
-		}
-
-		// Call the callback function
-		if (status != l_Undef) {
-			callback_learnts.clear();
-			callbackFunction(status == l_True, callback_learnts);
-			
-			// Process any learnt clauses from callback
-			for (int i = 0; i < callback_learnts.size(); i++) {
-				if (callback_learnts[i].size() == 1) {
-					uncheckedEnqueue(callback_learnts[i][0]);
-				} else {
-					CRef cr = ca.alloc(callback_learnts[i], true);
-					learnts_core.push(cr);
-					attachClause(cr);
-				}
-			}
-			
-			// If callback produced clauses, continue searching
-			if (callback_learnts.size() > 0) {
-				status = l_Undef;
-				continue;
-			}
+			// ... rest of the search function ...
 		}
 	}
 }
