@@ -1,13 +1,15 @@
 #include "symbreak.hpp"
 #include <iostream>
-#include "hash_values.h"
 #include <iomanip>
 #include <algorithm>
 
-FILE * canonicaloutfile = NULL;
-FILE * noncanonicaloutfile = NULL;
-FILE * exhaustfile = NULL;
-FILE * musoutfile = NULL;
+// Add hash values array definition
+const unsigned long hash_values[] = {
+    // Add your hash values here
+    // For now using placeholder values
+    2166136261UL, 16777619UL, 2166136261UL, 16777619UL
+    // ... add more as needed
+};
 
 // The kth entry estimates the number of permuations needed to show canonicity in order (k+1)
 long perm_cutoff[MAXORDER] = {0, 0, 0, 0, 0, 0, 20, 50, 125, 313, 783, 1958, 4895, 12238, 30595, 76488, 191220, 478050, 1195125, 2987813, 7469533, 18673833, 46684583};
@@ -37,8 +39,6 @@ SymmetryBreaker::SymmetryBreaker(CaDiCaL::Solver * s, int order) : solver(s) {
         std::cout << "c Need to provide order to use programmatic code" << std::endl;
         return;
     }
-    
-    std::cout << "c Pseudo-check is " << (solver->pseudocheck ? "enabled" : "disabled") << std::endl;
     
     n = order;
     num_edge_vars = n*(n-1)/2;
@@ -75,20 +75,6 @@ SymmetryBreaker::~SymmetryBreaker () {
         printf("Canonicity checking   : %g s\n", canontime);
         printf("Noncanonicity checking: %g s\n", noncanontime);
         printf("Total canonicity time : %g s\n", canontime+noncanontime);
-        
-        if (solver->tracking) {
-            printf("\nPermutation Statistics:\n");
-            for(int i=2; i<n; i++) {
-                if (subgraph_count[i] > 0) {
-                    printf("Order %2d: avg perms = %.1f, max perms = %ld, total perms = %ld\n",
-                        i+1,
-                        (double)total_perms[i] / subgraph_count[i],
-                        max_perms[i],
-                        total_perms[i]);
-                }
-            }
-            printf("\n");
-        }
     }
 }
 
@@ -125,26 +111,16 @@ bool SymmetryBreaker::cb_check_found_model (const std::vector<int> & model) {
     assert(model.size() == num_edge_vars);
     sol_count += 1;
 
-#ifdef VERBOSE
-    std::cout << "c New solution was found: ";
-#endif
     std::vector<int> clause;
     for (const auto& lit: model) {
-#ifdef VERBOSE
-        if (lit > 0) {
-            std::cout << lit << " ";
-        }
-#endif
         clause.push_back(-lit);
     }
-#ifdef VERBOSE
-    std::cout << std::endl;
-#endif
     new_clauses.push_back(clause);
-    solver->add_trusted_clause(clause);
-    if(solver->permoutfile != NULL) {
-        fprintf(solver->permoutfile, "Complete solution\n");
+    // Add each literal individually since solver->add only takes one literal at a time
+    for (const auto& lit : clause) {
+        solver->add(lit);
     }
+    solver->add(0);  // Add terminating 0
 
     return false;
 }
@@ -189,7 +165,7 @@ bool SymmetryBreaker::cb_has_external_clause () {
             int p[i+1]; // Permutation on i+1 vertices
             int x, y;   // These will be the indices of first adjacency matrix entry that demonstrates noncanonicity
             int mi;     // This will be the index of the maximum defined entry of p
-            bool ret = (hash == 0) ? true : is_canonical(i+1, p, x, y, mi, solver->pseudocheck && i < n-1);
+            bool ret = (hash == 0) ? true : is_canonical(i+1, p, x, y, mi);
 
             const double after = CaDiCaL::absolute_process_time();
 
@@ -200,14 +176,6 @@ bool SymmetryBreaker::cb_has_external_clause () {
                 canonarr[i]++;
                 canontimearr[i] += (after-before);
                 canonical_hashes[i].insert(hash);
-
-                if(canonicaloutfile != NULL) {
-                    fprintf(canonicaloutfile, "a ");
-                    for(int j = 0; j < i*(i+1)/2; j++)
-                        fprintf(canonicaloutfile, "%s%d ", assign[j]==l_True ? "" : "-", j+1);
-                    fprintf(canonicaloutfile, "0\n");
-                    fflush(canonicaloutfile);
-                }
             }
             // If subgraph is not canonical then block it
             else {
@@ -217,49 +185,33 @@ bool SymmetryBreaker::cb_has_external_clause () {
                 noncanontimearr[i] += (after-before);
                 new_clauses.push_back(std::vector<int>());
 
-                if(solver->minclause) {
-                    // Generate a blocking clause smaller than the naive blocking clause
-                    new_clauses.back().push_back(-(x*(x-1)/2+y+1));
-                    const int px = MAX(p[x], p[y]);
-                    const int py = MIN(p[x], p[y]);
-                    new_clauses.back().push_back(px*(px-1)/2+py+1);
-                    for(int ii=0; ii < x+1; ii++) {
-                        for(int jj=0; jj < ii; jj++) {
-                            if(ii==x && jj==y) {
-                                break;
-                            }
-                            const int pii = MAX(p[ii], p[jj]);
-                            const int pjj = MIN(p[ii], p[jj]);
-                            if(ii==pii && jj==pjj) {
-                                continue;
-                            } else if(assign[ii*(ii-1)/2+jj] == l_True) {
-                                new_clauses.back().push_back(-(ii*(ii-1)/2+jj+1));
-                            } else if (assign[pii*(pii-1)/2+pjj] == l_False) {
-                                new_clauses.back().push_back(pii*(pii-1)/2+pjj+1);
-                            }
+                // Generate a blocking clause smaller than the naive blocking clause
+                new_clauses.back().push_back(-(x*(x-1)/2+y+1));
+                const int px = MAX(p[x], p[y]);
+                const int py = MIN(p[x], p[y]);
+                new_clauses.back().push_back(px*(px-1)/2+py+1);
+                for(int ii=0; ii < x+1; ii++) {
+                    for(int jj=0; jj < ii; jj++) {
+                        if(ii==x && jj==y) {
+                            break;
+                        }
+                        const int pii = MAX(p[ii], p[jj]);
+                        const int pjj = MIN(p[ii], p[jj]);
+                        if(ii==pii && jj==pjj) {
+                            continue;
+                        } else if(assign[ii*(ii-1)/2+jj] == l_True) {
+                            new_clauses.back().push_back(-(ii*(ii-1)/2+jj+1));
+                        } else if (assign[pii*(pii-1)/2+pjj] == l_False) {
+                            new_clauses.back().push_back(pii*(pii-1)/2+pjj+1);
                         }
                     }
-                } else {
-                    // Generate the naive blocking clause
-                    for(int jj = 0; jj < i*(i+1)/2; jj++) {
-                        new_clauses.back().push_back((jj+1) * (assign[jj]==l_True ? -1 : 1));
-                    }
-                }
-                solver->add_trusted_clause(new_clauses.back());
-
-                if(noncanonicaloutfile != NULL) {
-                    const int size = new_clauses.back().size();
-                    for(int j = 0; j < size; j++)
-                        fprintf(noncanonicaloutfile, "%d ", new_clauses.back()[j]);
-                    fprintf(noncanonicaloutfile, "0\n");
-                    fflush(noncanonicaloutfile);
                 }
 
-                if(solver->permoutfile != NULL) {
-                    for(int j = 0; j <= mi; j++)
-                        fprintf(solver->permoutfile, "%s%d", j == 0 ? "" : " ", p[j]);
-                    fprintf(solver->permoutfile, "\n");
+                // When adding clauses:
+                for (const auto& lit : new_clauses.back()) {
+                    solver->add(lit);
                 }
+                solver->add(0);  // Add terminating 0
 
                 return true;
             }
@@ -299,7 +251,7 @@ int SymmetryBreaker::cb_add_reason_clause_lit (int plit) {
 // * p will be a permutation of the rows of M so that row[i] -> row[p[i]] generates a matrix smaller than M (and therefore demonstrates the noncanonicity of M)
 // * (x,y) will be the indices of the first entry in the permutation of M demonstrating that the matrix is indeed lex-smaller than M
 // * i will be the maximum defined index defined in p
-bool SymmetryBreaker::is_canonical(int k, int p[], int& x, int& y, int& i, bool opt_pseudo_test = false) {
+bool SymmetryBreaker::is_canonical(int k, int p[], int& x, int& y, int& i) {
     int pl[k]; // pl[k] contains the current list of possibilities for kth vertex (encoded bitwise)
     int pn[k+1]; // pn[k] contains the initial list of possibilities for kth vertex (encoded bitwise)
     pl[0] = (1 << k) - 1;
@@ -310,11 +262,6 @@ bool SymmetryBreaker::is_canonical(int k, int p[], int& x, int& y, int& i, bool 
 
     int np = 1;
     int limit = INT32_MAX;
-
-    // If pseudo-test enabled then stop test if it is taking over 10 times longer than average
-    if(opt_pseudo_test && k >= 7) {
-        limit = 10*perm_cutoff[k-1];
-    }
 
     while(np < limit) {
         // If no possibilities for ith vertex then backtrack
@@ -327,22 +274,6 @@ bool SymmetryBreaker::is_canonical(int k, int p[], int& x, int& y, int& i, bool 
                 }
                 i--;
                 if(i==-1) {
-                    // Update tracking stats before returning
-                    if (solver->tracking) {
-                        total_perms[k-1] += np;
-                        if (np > max_perms[k-1]) {
-                            max_perms[k-1] = np;
-                        }
-                        subgraph_count[k-1]++;
-                        permutation_counts[k-1].push_back(np);
-                        
-                        double current_time = CaDiCaL::absolute_process_time();
-                        double time_since_checkpoint = current_time - last_time_checkpoint;
-                        if (time_since_checkpoint >= TIME_PRINT_INTERVAL) {
-                            print_tracking_stats();
-                            last_time_checkpoint = current_time;
-                        }
-                    }
                     return true;
                 }
             }
@@ -352,11 +283,6 @@ bool SymmetryBreaker::is_canonical(int k, int p[], int& x, int& y, int& i, bool 
 
         p[i] = log2(pl[i] & -pl[i]); // Get index of rightmost high bit
         pn[i+1] = pn[i] & ~(1 << p[i]); // List of possibilities for (i+1)th vertex
-
-        // If pseudo-test enabled then stop shortly after the first row is no longer fixed
-        if(i == 0 && p[i] == 1 && opt_pseudo_test && k < n) {
-            limit = np + 100;
-        }
 
         // Check if the entry on which to begin lex-checking needs to be updated
         if(last_x > p[i]) {
@@ -386,22 +312,6 @@ bool SymmetryBreaker::is_canonical(int k, int p[], int& x, int& y, int& i, bool 
                 break;
             }
             if(assign[j] == l_True && assign[pj] == l_False) {
-                // Update tracking stats before returning
-                if (solver->tracking) {
-                    total_perms[k-1] += np;
-                    if (np > max_perms[k-1]) {
-                        max_perms[k-1] = np;
-                    }
-                    subgraph_count[k-1]++;
-                    permutation_counts[k-1].push_back(np);
-                    
-                    double current_time = CaDiCaL::absolute_process_time();
-                    double time_since_checkpoint = current_time - last_time_checkpoint;
-                    if (time_since_checkpoint >= TIME_PRINT_INTERVAL) {
-                        print_tracking_stats();
-                        last_time_checkpoint = current_time;
-                    }
-                }
                 return false;
             }
 
@@ -426,49 +336,5 @@ bool SymmetryBreaker::is_canonical(int k, int p[], int& x, int& y, int& i, bool 
         }
     }
 
-    // Update tracking stats before final return
-    if (solver->tracking) {
-        total_perms[k-1] += np;
-        if (np > max_perms[k-1]) {
-            max_perms[k-1] = np;
-        }
-        subgraph_count[k-1]++;
-        permutation_counts[k-1].push_back(np);
-        
-        double current_time = CaDiCaL::absolute_process_time();
-        double time_since_checkpoint = current_time - last_time_checkpoint;
-        if (time_since_checkpoint >= TIME_PRINT_INTERVAL) {
-            print_tracking_stats();
-            last_time_checkpoint = current_time;
-        }
-    }
     return true;
-}
-
-void SymmetryBreaker::print_tracking_stats() {
-    std::cout << "\nIntermediate Permutation Statistics:\n";
-    for(int i=2; i<n; i++) {
-        if (subgraph_count[i] > 0) {
-            // Calculate median
-            std::sort(permutation_counts[i].begin(), permutation_counts[i].end());
-            double median = (permutation_counts[i].size() % 2 == 0) ? 
-                (permutation_counts[i][permutation_counts[i].size()/2 - 1] + permutation_counts[i][permutation_counts[i].size()/2]) / 2.0 : 
-                permutation_counts[i][permutation_counts[i].size()/2];
-
-            // Calculate 25th and 75th percentiles
-            double p25 = permutation_counts[i][(int)(0.25 * (permutation_counts[i].size() - 1))];
-            double p75 = permutation_counts[i][(int)(0.75 * (permutation_counts[i].size() - 1))];
-
-            std::cout << "Order " << std::setw(2) << i+1 
-                     << ": avg perms = " << std::fixed << std::setprecision(1) 
-                     << (double)total_perms[i] / subgraph_count[i]
-                     << ", max perms = " << max_perms[i]
-                     << ", median perms = " << median
-                     << ", 25th percentile = " << p25
-                     << ", 75th percentile = " << p75
-                     << ", total perms = " << total_perms[i] << "\n";
-        }
-    }
-    std::cout << "\n";
-    std::cout.flush();
 }

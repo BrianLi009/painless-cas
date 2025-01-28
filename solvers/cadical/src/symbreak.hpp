@@ -10,6 +10,9 @@
 
 const int MAXORDER = 40;
 
+// Add hash values array declaration
+extern const unsigned long hash_values[];
+
 class SymmetryBreaker : CaDiCaL::ExternalPropagator {
     CaDiCaL::Solver * solver;
     std::vector<std::vector<int>> new_clauses;
@@ -37,6 +40,6 @@ public:
     int cb_decide ();
     int cb_propagate ();
     int cb_add_reason_clause_lit (int plit);
-    bool is_canonical(int k, int p[], int& x, int& y, int& i, bool opt_pseudo_test);
+    bool is_canonical(int k, int p[], int& x, int& y, int& i);
     void print_tracking_stats();
 };
