@@ -34,22 +34,21 @@ double last_time_checkpoint = 0;
 
 std::vector<int> permutation_counts[MAXORDER];
 
-SymmetryBreaker::SymmetryBreaker(CaDiCaL::Solver * s, int order) : solver(s) {
-    if (order == 0) {
-        std::cout << "c Need to provide order to use programmatic code" << std::endl;
-        return;
-    }
-    
-    n = order;
-    num_edge_vars = n*(n-1)/2;
+SymmetryBreaker::SymmetryBreaker(CaDiCaL::Solver * s, int order) : 
+    solver(s), 
+    n(order),
+    num_edge_vars(order * (order-1) / 2) {
+    // Allocate only what's needed
     assign = new int[num_edge_vars];
     fixed = new bool[num_edge_vars];
     colsuntouched = new int[n];
+    
+    // Initialize arrays
+    std::fill(assign, assign + num_edge_vars, l_Undef);
+    std::fill(fixed, fixed + num_edge_vars, false);
+    std::fill(colsuntouched, colsuntouched + n, n);
+
     solver->connect_external_propagator(this);
-    for (int i = 0; i < num_edge_vars; i++) {
-        assign[i] = l_Undef;
-        fixed[i] = false;
-    }
     std::cout << "c Running orderly generation on order " << n << " (" << num_edge_vars << " edge variables)" << std::endl;
     current_trail.push_back(std::vector<int>());
     for (int i = 0; i < num_edge_vars; i++) {
@@ -57,12 +56,12 @@ SymmetryBreaker::SymmetryBreaker(CaDiCaL::Solver * s, int order) : solver(s) {
     }
 }
 
-SymmetryBreaker::~SymmetryBreaker () {
+SymmetryBreaker::~SymmetryBreaker() {
     if (n != 0) {
         solver->disconnect_external_propagator ();
-        delete [] assign;
-        delete [] colsuntouched;
-        delete [] fixed;
+        delete[] assign;
+        delete[] fixed;
+        delete[] colsuntouched;
         printf("Number of solutions   : %ld\n", sol_count);
         printf("Canonical subgraphs   : %-12" PRIu64 "   (%.0f /sec)\n", canon, canon/canontime);
         for(int i=2; i<n; i++) {
