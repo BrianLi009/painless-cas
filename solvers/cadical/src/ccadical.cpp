@@ -2,6 +2,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <vector>
 
 namespace CaDiCaL {
 
@@ -26,10 +27,18 @@ struct Wrapper : Learner, Terminator {
     return terminator.function (terminator.state);
   }
 
-  bool learning (int size) {
+  bool learning (int size, int glue) override {
     if (!learner.function)
       return false;
     return size <= learner.max_length;
+  }
+
+  bool hasClauseToImport () override {
+    return false;  // Default implementation - no clauses to import
+  }
+
+  void getClauseToImport (std::vector<int> &clause, int &glue) override {
+    // Default implementation - empty since we don't import clauses
   }
 
   void learn (int lit) {
