@@ -1,15 +1,13 @@
 #include "symbreak.hpp"
 #include <iostream>
+#include "hash_values.h"
 #include <iomanip>
 #include <algorithm>
 
-// Add hash values array definition
-const unsigned long hash_values[] = {
-    // Add your hash values here
-    // For now using placeholder values
-    2166136261UL, 16777619UL, 2166136261UL, 16777619UL
-    // ... add more as needed
-};
+FILE * canonicaloutfile = NULL;
+FILE * noncanonicaloutfile = NULL;
+FILE * exhaustfile = NULL;
+FILE * musoutfile = NULL;
 
 // The kth entry estimates the number of permuations needed to show canonicity in order (k+1)
 long perm_cutoff[MAXORDER] = {0, 0, 0, 0, 0, 0, 20, 50, 125, 313, 783, 1958, 4895, 12238, 30595, 76488, 191220, 478050, 1195125, 2987813, 7469533, 18673833, 46684583};
@@ -34,42 +32,45 @@ double last_time_checkpoint = 0;
 
 std::vector<int> permutation_counts[MAXORDER];
 
-SymmetryBreaker::SymmetryBreaker(CaDiCaL::Solver * s, int order) : 
-    solver(s), 
-    n(order),
-    num_edge_vars(order * (order-1) / 2) {
-    // Allocate only what's needed
+SymmetryBreaker::SymmetryBreaker(CaDiCaL::Solver * s, int order) : solver(s) {
+    if (order == 0) {
+        std::cout << "c Need to provide order to use programmatic code" << std::endl;
+        return;
+    }
+    
+    n = order;
+    num_edge_vars = n*(n-1)/2;
     assign = new int[num_edge_vars];
     fixed = new bool[num_edge_vars];
     colsuntouched = new int[n];
-    
-    // Initialize arrays
-    std::fill(assign, assign + num_edge_vars, l_Undef);
-    std::fill(fixed, fixed + num_edge_vars, false);
-    std::fill(colsuntouched, colsuntouched + n, n);
-
     solver->connect_external_propagator(this);
+    for (int i = 0; i < num_edge_vars; i++) {
+        assign[i] = l_Undef;
+        fixed[i] = false;
+    }
     std::cout << "c Running orderly generation on order " << n << " (" << num_edge_vars << " edge variables)" << std::endl;
+    // The root-level of the trail is always there
     current_trail.push_back(std::vector<int>());
+    // Observe the edge variables for orderly generation
     for (int i = 0; i < num_edge_vars; i++) {
         solver->add_observed_var(i+1);
     }
 }
 
-SymmetryBreaker::~SymmetryBreaker() {
+SymmetryBreaker::~SymmetryBreaker () {
     if (n != 0) {
         solver->disconnect_external_propagator ();
-        delete[] assign;
-        delete[] fixed;
-        delete[] colsuntouched;
+        delete [] assign;
+        delete [] colsuntouched;
+        delete [] fixed;
         printf("Number of solutions   : %ld\n", sol_count);
-        printf("Canonical subgraphs   : %-12" PRIu64 "   (%.0f /sec)\n", canon, canon/canontime);
+        printf("Canonical subgraphs   : %ld   (%.0f /sec)\n", canon, canon/canontime);
         for(int i=2; i<n; i++) {
-            printf("          order %2d    : %-12" PRIu64 "   (%.0f /sec)\n", i+1, canonarr[i], canonarr[i]/canontimearr[i]);
+            printf("          order %2d    : %ld   (%.0f /sec)\n", i+1, canonarr[i], canonarr[i]/canontimearr[i]);
         }
-        printf("Noncanonical subgraphs: %-12" PRIu64 "   (%.0f /sec)\n", noncanon, noncanon/noncanontime);
+        printf("Noncanonical subgraphs: %ld   (%.0f /sec)\n", noncanon, noncanon/noncanontime);
         for(int i=2; i<n; i++) {
-            printf("          order %2d    : %-12" PRIu64 "   (%.0f /sec)\n", i+1, noncanonarr[i], noncanonarr[i]/noncanontimearr[i]);
+            printf("          order %2d    : %ld   (%.0f /sec)\n", i+1, noncanonarr[i], noncanonarr[i]/noncanontimearr[i]);
         }
         printf("Canonicity checking   : %g s\n", canontime);
         printf("Noncanonicity checking: %g s\n", noncanontime);
@@ -110,17 +111,22 @@ bool SymmetryBreaker::cb_check_found_model (const std::vector<int> & model) {
     assert(model.size() == num_edge_vars);
     sol_count += 1;
 
+#ifdef VERBOSE
+    std::cout << "c New solution was found: ";
+#endif
     std::vector<int> clause;
     for (const auto& lit: model) {
+#ifdef VERBOSE
+        if (lit > 0) {
+            std::cout << lit << " ";
+        }
+#endif
         clause.push_back(-lit);
     }
+#ifdef VERBOSE
+    std::cout << std::endl;
+#endif
     new_clauses.push_back(clause);
-    // Add each literal individually since solver->add only takes one literal at a time
-    for (const auto& lit : clause) {
-        solver->add(lit);
-    }
-    solver->add(0);  // Add terminating 0
-
     return false;
 }
 
@@ -159,12 +165,13 @@ bool SymmetryBreaker::cb_has_external_clause () {
         if(canonical_hashes[i].find(hash)==canonical_hashes[i].end())
         {
             // Found a new subgraph of order i+1 to test for canonicity
+            // Always use pseudo-check except for the final order
             const double before = CaDiCaL::absolute_process_time();
             // Run canonicity check
             int p[i+1]; // Permutation on i+1 vertices
-            int x, y;   // These will be the indices of first adjacency matrix entry that demonstrates noncanonicity
+            int x, y;   // These will be the indices of first adjacency matrix entry that demonstrates noncanonicity (when such indices exist)
             int mi;     // This will be the index of the maximum defined entry of p
-            bool ret = (hash == 0) ? true : is_canonical(i+1, p, x, y, mi);
+            bool ret = (hash == 0) ? true : is_canonical(i+1, p, x, y, mi, i < n-1);
 
             const double after = CaDiCaL::absolute_process_time();
 
@@ -206,12 +213,6 @@ bool SymmetryBreaker::cb_has_external_clause () {
                     }
                 }
 
-                // When adding clauses:
-                for (const auto& lit : new_clauses.back()) {
-                    solver->add(lit);
-                }
-                solver->add(0);  // Add terminating 0
-
                 return true;
             }
         }
@@ -250,7 +251,7 @@ int SymmetryBreaker::cb_add_reason_clause_lit (int plit) {
 // * p will be a permutation of the rows of M so that row[i] -> row[p[i]] generates a matrix smaller than M (and therefore demonstrates the noncanonicity of M)
 // * (x,y) will be the indices of the first entry in the permutation of M demonstrating that the matrix is indeed lex-smaller than M
 // * i will be the maximum defined index defined in p
-bool SymmetryBreaker::is_canonical(int k, int p[], int& x, int& y, int& i) {
+bool SymmetryBreaker::is_canonical(int k, int p[], int& x, int& y, int& i, bool opt_pseudo_test = false) {
     int pl[k]; // pl[k] contains the current list of possibilities for kth vertex (encoded bitwise)
     int pn[k+1]; // pn[k] contains the initial list of possibilities for kth vertex (encoded bitwise)
     pl[0] = (1 << k) - 1;
@@ -261,6 +262,11 @@ bool SymmetryBreaker::is_canonical(int k, int p[], int& x, int& y, int& i) {
 
     int np = 1;
     int limit = INT32_MAX;
+
+    // If pseudo-test enabled then stop test if it is taking over 10 times longer than average
+    if(opt_pseudo_test && k >= 7) {
+        limit = 10*perm_cutoff[k-1];
+    }
 
     while(np < limit) {
         // If no possibilities for ith vertex then backtrack
@@ -282,6 +288,11 @@ bool SymmetryBreaker::is_canonical(int k, int p[], int& x, int& y, int& i) {
 
         p[i] = log2(pl[i] & -pl[i]); // Get index of rightmost high bit
         pn[i+1] = pn[i] & ~(1 << p[i]); // List of possibilities for (i+1)th vertex
+
+        // If pseudo-test enabled then stop shortly after the first row is no longer fixed
+        if(i == 0 && p[i] == 1 && opt_pseudo_test && k < n) {
+            limit = np + 100;
+        }
 
         // Check if the entry on which to begin lex-checking needs to be updated
         if(last_x > p[i]) {
