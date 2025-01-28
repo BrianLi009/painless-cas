@@ -1,5 +1,6 @@
 #include "internal.hpp"
 #include <set>
+#include <unordered_set>
 
 #define l_False 0
 #define l_True 1
@@ -23,14 +24,32 @@ class SymmetryBreaker : CaDiCaL::ExternalPropagator {
     int n = 0;
     long sol_count = 0;
     int num_edge_vars = 0;
-    std::set<unsigned long> canonical_hashes[MAXORDER];
-    std::set<unsigned long> solution_hashes;
+    std::unordered_set<unsigned long> canonical_hashes[MAXORDER];
+    std::unordered_set<unsigned long> solution_hashes;
     long total_perms[MAXORDER] = {};     // Total permutations tried for each order
     long max_perms[MAXORDER] = {};       // Maximum permutations tried for each order
     long subgraph_count[MAXORDER] = {};  // Count of subgraphs checked for each order
 public:
-    SymmetryBreaker(CaDiCaL::Solver * s, int order);
-    ~SymmetryBreaker ();
+    SymmetryBreaker(CaDiCaL::Solver * s, int order) : 
+        solver(s), 
+        n(order),
+        num_edge_vars(order * (order-1) / 2) {
+        // Allocate only what's needed
+        assign = new int[num_edge_vars];
+        fixed = new bool[num_edge_vars];
+        colsuntouched = new int[n];
+        
+        // Initialize arrays
+        std::fill(assign, assign + num_edge_vars, l_Undef);
+        std::fill(fixed, fixed + num_edge_vars, false);
+        std::fill(colsuntouched, colsuntouched + n, n);
+    }
+
+    ~SymmetryBreaker() {
+        delete[] assign;
+        delete[] fixed;
+        delete[] colsuntouched;
+    }
     void notify_assignment(int lit, bool is_fixed);
     void notify_new_decision_level ();
     void notify_backtrack (size_t new_level);
