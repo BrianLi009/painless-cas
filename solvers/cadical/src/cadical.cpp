@@ -382,7 +382,7 @@ int App::main (int argc, char **argv) {
   bool witness = true, less = false;
   const char *dimacs_name, *err;
 
-  int order = 23;  // Default order value
+  int order = 5;  // Default order value
 
   for (int i = 1; i < argc; i++) {
     if (!strcmp (argv[i], "-h") || !strcmp (argv[i], "--help") ||
