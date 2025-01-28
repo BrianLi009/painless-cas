@@ -4,6 +4,7 @@
 
 #include "internal.hpp"
 #include "signal.hpp" // Separate, only need for apps.
+#include "symbreak.hpp"  // Add this include
 
 /*------------------------------------------------------------------------*/
 
@@ -381,6 +382,8 @@ int App::main (int argc, char **argv) {
   bool witness = true, less = false;
   const char *dimacs_name, *err;
 
+  int order = 9;  // Default order value
+
   for (int i = 1; i < argc; i++) {
     if (!strcmp (argv[i], "-h") || !strcmp (argv[i], "--help") ||
         !strcmp (argv[i], "--build") || !strcmp (argv[i], "--version") ||
@@ -555,6 +558,8 @@ int App::main (int argc, char **argv) {
     else if (dimacs_specified) {
       proof_path = argv[i];
       proof_specified = true;
+      if (!proof_path)
+        proof_path = "-";
       if (!force_writing && most_likely_existing_cnf_file (proof_path))
         APPERR ("DRAT proof file '%s' most likely existing CNF (use '-f')",
                 proof_path);
@@ -837,6 +842,12 @@ int App::main (int argc, char **argv) {
       res = 0;
   } else {
     solver->section ("solving");
+
+    // Initialize SymmetryBreaker before solving
+    SymmetryBreaker se(solver, order);
+
+    max_var = solver->active ();
+    
     res = solver->solve ();
   }
 
