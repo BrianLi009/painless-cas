@@ -88,10 +88,11 @@ Cadical::Cadical(int id, const std::shared_ptr<ClauseDatabase>& clauseDB)
 	solver->connect_learner(this);
 	solver->connect_terminator(this);
 	
-	// Create symmetry breaker with appropriate order
-	// You'll need to determine the appropriate order, perhaps from parameters
-	int order = 0;  // Set this appropriately
-	symmetryBreaker = std::make_unique<SymmetryBreaker>(solver.get(), order);
+	// Only create symmetry breaker if order is specified
+	if (__globalParameters__.order > 0) {
+		symmetryBreaker = std::make_unique<SymmetryBreaker>(solver.get(), __globalParameters__.order);
+		LOG2("Created symmetry breaker with order %d", __globalParameters__.order);
+	}
 	
 	this->initCadicalOptions();
 	initializeTypeId<Cadical>();

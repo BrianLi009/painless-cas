@@ -87,6 +87,8 @@ struct Parameters {
     #undef PARAM
     #undef CATEGORY
 
+    int order = 0;  // Default to 0 means no symmetry breaking
+
     static void init(int argc, char** argv);
     static void printHelp();
     static void printParams();

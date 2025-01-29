@@ -68,6 +68,11 @@ Parameters::init(int argc, char** argv)
 		std::string key = (eq_pos == std::string::npos) ? arg.substr(1) : arg.substr(1, eq_pos - 1);
 		std::string value = (eq_pos == std::string::npos) ? "true" : arg.substr(eq_pos + 1);
 
+		if (strncmp(argv[i], "-order=", 7) == 0) {
+			__globalParameters__.order = atoi(argv[i] + 7);
+			continue;
+		}
+
 #define PARAM(name, type, parsed_name, default_value, description)                                                     \
 	if (key == parsed_name) {                                                                                          \
 		try {                                                                                                          \

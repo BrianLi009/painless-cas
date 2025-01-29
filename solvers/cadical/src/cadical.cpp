@@ -4,7 +4,6 @@
 
 #include "internal.hpp"
 #include "signal.hpp" // Separate, only need for apps.
-#include "symbreak.hpp"  // Add this include
 
 /*------------------------------------------------------------------------*/
 
@@ -381,8 +380,6 @@ int App::main (int argc, char **argv) {
 #endif
   bool witness = true, less = false;
   const char *dimacs_name, *err;
-
-  int order = 5;  // Default order value
 
   for (int i = 1; i < argc; i++) {
     if (!strcmp (argv[i], "-h") || !strcmp (argv[i], "--help") ||
@@ -842,9 +839,6 @@ int App::main (int argc, char **argv) {
       res = 0;
   } else {
     solver->section ("solving");
-
-    // Initialize SymmetryBreaker before solving
-    SymmetryBreaker se(solver, order);
 
     max_var = solver->active ();
     
