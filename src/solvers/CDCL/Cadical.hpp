@@ -16,7 +16,7 @@
 // Cadical includes
 #include "cadical/src/cadical.hpp"
 
-#include "symbreak.hpp"
+#include "cadical/src/symbreak.hpp"
 
 /*---------------------Main Class----------------------*/
 
