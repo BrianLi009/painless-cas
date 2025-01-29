@@ -16,6 +16,8 @@
 // Cadical includes
 #include "cadical/src/cadical.hpp"
 
+#include "symbreak.hpp"
+
 /*---------------------Main Class----------------------*/
 
 /**
@@ -110,6 +112,9 @@ class Cadical
   protected:
 	/// Pointer to a Cadical solver.
 	std::unique_ptr<CaDiCaL::Solver> solver;
+
+	/// Pointer to a symmetry breaker.
+	std::unique_ptr<SymmetryBreaker> symmetryBreaker;
 
 	/// Buffer used to add permanent clauses.
 	ClauseBuffer clausesToAdd;

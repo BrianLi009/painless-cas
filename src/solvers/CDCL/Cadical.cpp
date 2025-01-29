@@ -87,8 +87,13 @@ Cadical::Cadical(int id, const std::shared_ptr<ClauseDatabase>& clauseDB)
 	solver = std::make_unique<CaDiCaL::Solver>();
 	solver->connect_learner(this);
 	solver->connect_terminator(this);
+	
+	// Create symmetry breaker with appropriate order
+	// You'll need to determine the appropriate order, perhaps from parameters
+	int order = 0;  // Set this appropriately
+	symmetryBreaker = std::make_unique<SymmetryBreaker>(solver.get(), order);
+	
 	this->initCadicalOptions();
-
 	initializeTypeId<Cadical>();
 }
 
@@ -97,6 +102,7 @@ Cadical::~Cadical()
 	solver->terminate(); /* just in case */
 	solver->disconnect_learner();
 	solver->disconnect_terminator();
+	symmetryBreaker.reset();  // Clean up symmetry breaker
 }
 
 /* Execution */
@@ -116,14 +122,19 @@ Cadical::solve(const std::vector<int>& cube)
 
 	int res = solver->solve();
 
-	if (res == 10) {
-		LOG2("Cadical %d responded with SAT", this->getSolverId());
-		return SatResult::SAT;
-	}
+	// Now the symmetry breaker will handle solution blocking via callbacks
+	// We only return UNSAT when truly no more solutions exist
 	if (res == 20) {
 		LOG2("Cadical %d responded with UNSAT", this->getSolverId());
 		return SatResult::UNSAT;
 	}
+	if (res == 10) {
+		// The symmetry breaker will handle solution blocking
+		// Continue searching by returning UNKNOWN
+		LOG2("Cadical %d found a solution, continuing search", this->getSolverId());
+		return SatResult::UNKNOWN;
+	}
+	
 	LOGDEBUG2("Cadical %d responded with %d (UNKNOWN)", this->getSolverId(), res);
 	return SatResult::UNKNOWN;
 }
